@@ -50,14 +50,6 @@ public class AddWiFinderTask extends AsyncTask<WiFinder, Void, Integer> {
             }
         }
 
-        synchronized (this) {
-            try {
-                wait(1500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
         return 0;
     }
 

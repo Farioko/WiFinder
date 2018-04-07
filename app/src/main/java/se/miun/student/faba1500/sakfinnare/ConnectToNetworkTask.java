@@ -1,8 +1,6 @@
 package se.miun.student.faba1500.sakfinnare;
 
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -34,13 +32,6 @@ public class ConnectToNetworkTask extends AsyncTask<Void, Void, Void> {
 
         // Connect to the network.
         manager.enableNetwork(manager.addNetwork(wifiConfiguration), true);
-
-        // Block until connected
-        ConnectivityManager cm =
-                (ConnectivityManager) context.get().getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        NetworkInfo activeNetwork = Objects.requireNonNull(cm).getActiveNetworkInfo();
-        boolean isConnected = activeNetwork != null && activeNetwork.isConnected();
 
         return null;
     }

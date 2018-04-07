@@ -3,7 +3,9 @@ package se.miun.student.faba1500.sakfinnare;
 import android.arch.persistence.room.ColumnInfo;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.net.wifi.WifiConfiguration;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -12,7 +14,7 @@ import java.lang.ref.WeakReference;
 
 @Entity
 public class WiFinder {
-    @PrimaryKey
+    @PrimaryKey @NonNull
     private String bssid;
 
     @ColumnInfo(name = "name")
@@ -59,6 +61,15 @@ public class WiFinder {
                     Log.d("ConnectAction", "Connected!");
                 }
             };
+
+            BroadcastReceiver receiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+
+                }
+            };
+
+            context.get().registerReceiver(receiver);
 
             task.setPostExecuteListener(postExecuteListener);
             task.execute();

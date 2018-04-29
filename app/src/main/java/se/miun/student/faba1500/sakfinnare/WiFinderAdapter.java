@@ -6,8 +6,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -32,15 +33,19 @@ class WiFinderAdapter extends RecyclerView.Adapter<WiFinderAdapter.ViewHolder> {
         holder.bssid.setText(wiFinders.get(position).getBssid());
         holder.key.setText(wiFinders.get(position).getKey());
 
-        holder.connect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        holder.connect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 Log.d("ConnectAction", "Connect to " + holder.bssid.getText());
+
                 WiFinder wiFinder = new WiFinder();
                 wiFinder.setBssid(holder.bssid.getText().toString());
                 wiFinder.setKey(holder.key.getText().toString());
 
-                wiFinder.setState(true, context);
+                if (isChecked) {
+                    wiFinder.setState(true, context);
+                } else {
+                    wiFinder.setState(false, context);
+                }
             }
         });
     }
@@ -53,7 +58,7 @@ class WiFinderAdapter extends RecyclerView.Adapter<WiFinderAdapter.ViewHolder> {
     public class ViewHolder extends RecyclerView.ViewHolder {
         public TextView bssid;
         public TextView key;
-        public Button connect;
+        public ToggleButton connect;
 
         public ViewHolder(View itemView) {
             super(itemView);

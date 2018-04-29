@@ -12,7 +12,6 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
@@ -57,8 +56,21 @@ public class WiFinder {
     }
 
     public class WifiReceiver extends BroadcastReceiver {
+        public boolean lost;
+
         @Override
         public void onReceive(Context context, Intent intent) {
+            WifiManager manager = (WifiManager) context.getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+
+            try {
+                if(!manager.getConnectionInfo().getBSSID().equals(WiFinder.this.bssid)) {
+                    return;
+                }
+            } catch(NullPointerException e) {
+                return;
+            }
+
             ConnectivityManager cm =
                     (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -73,7 +85,12 @@ public class WiFinder {
                 connectedToast.show();
 
                 try {
-                    new SendGetRequestTask().execute(new URL("http://10.42.0.1:8080/status/"));
+                    HTTPRequest request = new HTTPRequest();
+                    request.type = HTTPRequestType.PUT;
+                    request.url = new URL("http://192.168.4.1/status");
+                    request.lost = this.lost;
+
+                    new SendHTTPRequestTask().execute(request);
                 } catch(MalformedURLException e) {}
 
                 context.unregisterReceiver(this);
@@ -82,56 +99,43 @@ public class WiFinder {
     }
 
     public int setState(boolean lost, WeakReference<Context> context) {
-        if(lost) {
-            WifiConfiguration configuration = new WifiConfiguration();
-            configuration.SSID = "Sakfinnare";
-            configuration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+        WifiManager manager = (WifiManager) context.get().getApplicationContext()
+                .getSystemService(Context.WIFI_SERVICE);
 
-            WifiManager manager = (WifiManager) context.get().getApplicationContext()
-                    .getSystemService(Context.WIFI_SERVICE);
+        if(manager.getConnectionInfo().getBSSID().equals(this.bssid)) {
+            try {
+                HTTPRequest request = new HTTPRequest();
+                request.type = HTTPRequestType.PUT;
+                request.url = new URL("http://192.168.4.1/status");
+                request.lost = lost;
 
-            // Remove all old configurations first, in case the user changed it.
-            // Yes, this is safe, because we only have permission to delete configurations
-            // that are created by this application.
-            for(WifiConfiguration i : Objects.requireNonNull(manager).getConfiguredNetworks()) {
-                manager.removeNetwork(i.networkId);
+                new SendHTTPRequestTask().execute(request);
+            } catch(MalformedURLException e) {
+                return -1;
             }
 
-            // Enable WiFi in case its disabled.
-            manager.setWifiEnabled(true);
-
-            WifiReceiver receiver = new WifiReceiver();
-            context.get().registerReceiver(receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-
-            // Connect to the network.
-            manager.enableNetwork(manager.addNetwork(configuration), true);
-
-
-
-            // OLD:
-
-            /*
-            ConnectToNetworkTask task = new ConnectToNetworkTask(context, configuration);
-            ConnectToNetworkTask.PostExecuteListener postExecuteListener = new ConnectToNetworkTask.PostExecuteListener() {
-                @Override
-                public void postExecute() {
-                    Log.d("ConnectAction", "Connected!");
-                }
-            };
-
-            BroadcastReceiver receiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-
-                }
-            };
-
-            context.get().registerReceiver(receiver);
-
-            task.setPostExecuteListener(postExecuteListener);
-            task.execute();
-            */
+            return 0;
         }
+
+        WifiConfiguration configuration = new WifiConfiguration();
+
+        configuration.BSSID = this.bssid;
+        configuration.preSharedKey = "\"" + this.key + "\"";
+        configuration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+
+        // Remove all old configurations first, in case the user changed it.
+        // Yes, this is safe, because we only have permission to delete configurations
+        // that are created by this application.
+        for(WifiConfiguration i : Objects.requireNonNull(manager).getConfiguredNetworks()) {
+            manager.removeNetwork(i.networkId);
+        }
+
+        WifiReceiver receiver = new WifiReceiver();
+        receiver.lost = lost;
+        context.get().registerReceiver(receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
+        // Connect to the network.
+        manager.enableNetwork(manager.addNetwork(configuration), true);
 
         return 0;
     }
